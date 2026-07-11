@@ -29,21 +29,35 @@
       {% endfor %}
     </div>
 
+    <div class="net-hero net-hero--{{ stats.net_status }}">
+      <span class="net-hero-badge">
+        {% if stats.net_status == 'positive' %}فاضل معاك
+        {% elif stats.net_status == 'negative' %}ناقص عليك
+        {% else %}متعادل{% endif %}
+      </span>
+      <span class="net-hero-lbl">{% if period == 'today' %}النهاردة{% else %}الفترة دي{% endif %}</span>
+      <span class="net-hero-val">{{ stats.net_abs }}<small> ج</small></span>
+    </div>
+
     <div class="money-cards">
       <div class="money-card income">
         <div class="money-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
         <div class="money-card-val">{{ stats.income }}<small>ج</small></div>
-        <div class="money-card-lbl">دخل</div>
+        <div class="money-card-lbl">مكسب</div>
       </div>
       <div class="money-card cost">
         <div class="money-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
         <div class="money-card-val">{{ stats.cost }}<small>ج</small></div>
-        <div class="money-card-lbl">طلع</div>
+        <div class="money-card-lbl">مصاريف</div>
       </div>
-      <div class="money-card net">
+      <div class="money-card net net--{{ stats.net_status }}">
         <div class="money-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
-        <div class="money-card-val">{{ stats.net }}<small>ج</small></div>
-        <div class="money-card-lbl">باقي</div>
+        <div class="money-card-val">{{ stats.net_abs }}<small>ج</small></div>
+        <div class="money-card-lbl">
+          {% if stats.net_status == 'positive' %}فاضل
+          {% elif stats.net_status == 'negative' %}ناقص
+          {% else %}متعادل{% endif %}
+        </div>
       </div>
     </div>
   </main>

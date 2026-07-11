@@ -15,7 +15,8 @@
   function dropBadgeText(n) {
     if (n === 0) return 'محدش نازل';
     if (n === 1) return 'واحد هينزل';
-    return 'اتنين او اكتر نازلين';
+    if (n === 2) return 'اتنين هينزلوا';
+    return `${n} نازلين`;
   }
 
   function renderArriveSection(data) {
@@ -65,19 +66,27 @@
   }
 
   function renderPassengers(passengers, nextStopId) {
+    const section = document.getElementById('passengers-section');
     const list = document.getElementById('passenger-list');
-    const empty = document.getElementById('no-passengers');
     const countEl = document.getElementById('passenger-count');
-    list.innerHTML = '';
-    if (countEl) countEl.textContent = passengers.length ? passengers.length : '';
+    const pendingCash = passengers.filter(
+      (p) => p.payment_method === 'CASH' && p.payment_status === 'PENDING'
+    );
 
-    if (!passengers.length) {
-      empty.classList.remove('hidden');
+    if (!section || !list) return;
+
+    if (!pendingCash.length) {
+      section.classList.add('hidden');
+      list.innerHTML = '';
+      if (countEl) countEl.textContent = '';
       return;
     }
-    empty.classList.add('hidden');
 
-    passengers.forEach((p) => {
+    section.classList.remove('hidden');
+    list.innerHTML = '';
+    if (countEl) countEl.textContent = String(pendingCash.length);
+
+    pendingCash.forEach((p) => {
       const droppingHere = nextStopId && p.drop_stop_id === nextStopId;
       const card = document.createElement('div');
       card.className = 'pax-row' + (droppingHere ? ' dropping' : '');

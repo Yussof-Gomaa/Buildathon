@@ -92,10 +92,20 @@ def dashboard_stats(driver, start: date, end: date) -> dict:
         if days:
             total_cost += cost.daily_amortized_amount * Decimal(days)
 
+    net = (income - total_cost).quantize(Decimal('0.01'))
+    if net > 0:
+        net_status = 'positive'
+    elif net < 0:
+        net_status = 'negative'
+    else:
+        net_status = 'zero'
+
     return {
         'income': income,
         'cost': total_cost.quantize(Decimal('0.01')),
-        'net': (income - total_cost).quantize(Decimal('0.01')),
+        'net': net,
+        'net_abs': abs(net).quantize(Decimal('0.01')),
+        'net_status': net_status,
         'start': start,
         'end': end,
     }

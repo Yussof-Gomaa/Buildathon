@@ -27,37 +27,35 @@
     </div>
 
     <div id="active-ride" class="hidden">
-      <div class="capacity-strip">
-        <div class="capacity-info">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-          <span id="capacity-text"></span>
+      <div class="ride-status-card">
+        <div class="capacity-strip">
+          <div class="capacity-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span id="capacity-text"></span>
+          </div>
+          <div class="capacity-bar"><div class="capacity-fill" id="capacity-fill"></div></div>
+          <button class="icon-circle-btn danger" id="btn-end-ride" type="button" title="خلصنا">
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+          </button>
         </div>
-        <div class="capacity-bar"><div class="capacity-fill" id="capacity-fill"></div></div>
-        <button class="icon-circle-btn danger" id="btn-end-ride" type="button" title="خلصنا">
-          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
-        </button>
+
+        <div id="arrive-section" class="arrive-hero"></div>
       </div>
 
-      <div id="arrive-section" class="arrive-hero"></div>
-
-      <section class="driver-section">
+      <section class="driver-section hidden" id="passengers-section">
         <div class="section-head">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>في العربية</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>كاش مستني</span>
           <span class="section-count" id="passenger-count"></span>
         </div>
         <div class="passenger-list" id="passenger-list"></div>
-        <p class="empty-state hidden" id="no-passengers">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9h.01M15 9h.01"/></svg>
-          مفيش حد
-        </p>
       </section>
 
-      <details class="driver-section manual-add-panel">
-        <summary class="section-head">
+      <section class="driver-section manual-add-panel">
+        <div class="section-head">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           <span>زوّد راكب</span>
-        </summary>
+        </div>
         <div class="manual-add-body">
           <p class="step-chip"><span>١</span> منين؟</p>
           <div class="stop-grid" id="manual-pickup-list"></div>
@@ -81,7 +79,7 @@
 
           <button class="btn-hero secondary hidden" id="btn-manual-add" type="button">ضيف</button>
         </div>
-      </details>
+      </section>
     </div>
   </main>
 
