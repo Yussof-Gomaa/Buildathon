@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}
+
+{% block title %}التقرير{% endblock %}
+
+{% block content %}
+<div class="app-shell wide">
+  <div class="top-bar">
+    <h1>التقرير</h1>
+    <div class="nav-links">
+      <a href="{% url 'driver_home' %}">الرحلة</a>
+      <a href="{% url 'driver_expense' %}">مصروف</a>
+    </div>
+  </div>
+
+  <div class="period-tabs">
+    {% for key, label in periods %}
+    <a href="?period={{ key }}" class="{% if period == key %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card income">
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto;color:var(--success)">
+        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+      <div>الدخل</div>
+      <div class="value">{{ stats.income }} ج</div>
+    </div>
+    <div class="stat-card cost">
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto;color:var(--danger)">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
+      </svg>
+      <div>المصروفات</div>
+      <div class="value">{{ stats.cost }} ج</div>
+    </div>
+    <div class="stat-card net">
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto;color:var(--primary)">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+      <div>الصافي</div>
+      <div class="value">{{ stats.net }} ج</div>
+    </div>
+  </div>
+
+  <p class="subtitle" style="text-align:center;margin-top:1.5rem">
+    من {{ stats.start }} إلى {{ stats.end }}
+  </p>
+</div>
+{% endblock %}

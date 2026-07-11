@@ -1,0 +1,56 @@
+{% extends "core/base.html" %}
+
+{% block title %}إضافة مصروف{% endblock %}
+
+{% block content %}
+<div class="app-shell wide">
+  <div class="top-bar">
+    <h1>مصروف جديد</h1>
+    <div class="nav-links">
+      <a href="{% url 'driver_home' %}">الرحلة</a>
+      <a href="{% url 'driver_dashboard' %}">تقرير</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="amount">المبلغ (جنيه)</label>
+        <input type="number" name="amount" id="amount" step="0.01" min="0" required>
+      </div>
+      <div class="form-group">
+        <label for="period">الفترة</label>
+        <select name="period" id="period">
+          {% for value, label in period_choices %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="note">ملاحظة</label>
+        <input type="text" name="note" id="note" placeholder="مثال: ديزل، صيانة...">
+      </div>
+      <button type="submit" class="btn btn-primary">حفظ</button>
+    </form>
+  </div>
+
+  {% if recent_costs %}
+  <h2 style="margin:1.5rem 0 0.75rem">آخر المصروفات</h2>
+  <div class="cost-list">
+    {% for cost in recent_costs %}
+    <div class="cost-item">
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent)">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+      <div>
+        <div>{{ cost.note|default:"مصروف" }}</div>
+        <div class="subtitle">{{ cost.get_period_display }} — {{ cost.date_incurred }}</div>
+      </div>
+      <span class="amount">{{ cost.amount }} ج</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

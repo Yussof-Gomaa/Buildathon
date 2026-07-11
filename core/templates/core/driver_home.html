@@ -1,0 +1,56 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}لوحة السائق{% endblock %}
+
+{% block content %}
+<div class="app-shell wide" id="driver-app">
+  <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+  <div class="top-bar">
+    <h1>رحلة اليوم</h1>
+    <div class="nav-links">
+      <a href="{% url 'driver_expense' %}">مصروف</a>
+      <a href="{% url 'driver_dashboard' %}">تقرير</a>
+      <a href="{% url 'driver_logout' %}">خروج</a>
+    </div>
+  </div>
+
+  <div id="no-ride" class="card" style="text-align:center">
+    <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 1rem">
+      <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v5h-3"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+    </svg>
+    <p class="subtitle" id="route-label"></p>
+    <button class="btn btn-primary" id="btn-start-ride" style="margin-top:1rem">بدء الرحلة</button>
+  </div>
+
+  <div id="active-ride" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span id="capacity-text"></span>
+        <button class="btn btn-danger btn-sm" id="btn-end-ride">إنهاء الرحلة</button>
+      </div>
+      <div class="capacity-bar"><div class="capacity-fill" id="capacity-fill"></div></div>
+    </div>
+
+    <h2 style="margin:1rem 0 0.75rem">الركاب</h2>
+    <div class="passenger-list" id="passenger-list"></div>
+    <p class="subtitle hidden" id="no-passengers" style="text-align:center;padding:2rem">لا يوجد ركاب حالياً</p>
+
+    <div class="manual-add card">
+      <h2 style="margin-bottom:0.75rem">إضافة راكب يدوياً</h2>
+      <select id="manual-pickup"></select>
+      <select id="manual-drop"></select>
+      <select id="manual-payment">
+        <option value="CASH">نقدي</option>
+        <option value="INSTAPAY">إنستاباي</option>
+      </select>
+      <button class="btn btn-outline" id="btn-manual-add" style="margin-top:0.5rem">إضافة</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'core/js/driver.js' %}"></script>
+{% endblock %}

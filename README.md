@@ -26,16 +26,35 @@ python manage.py seed_data
 python manage.py runserver
 ```
 
-Visit http://127.0.0.1:8000/admin/ to review models and seeded data.
+Visit http://127.0.0.1:8000/ for the passenger tablet UI.
 
-### Demo login (Sayed / Django admin)
+### Demo login (Sayed)
 
 | Field    | Value      |
 |----------|------------|
 | Username | `sayed`    |
 | Password | `sayed123` |
 
-Sayed's user has `is_staff=True` so he can access `/admin/` for the driver dashboard during the hackathon.
+## Test the full flow
+
+Use two browser tabs (or two devices on the same network):
+
+1. **Sayed's tablet** — http://127.0.0.1:8000/driver/login/
+   - Log in as `sayed` / `sayed123`
+   - Tap **بدء الرحلة** (Start ride)
+
+2. **Passenger tablet** — http://127.0.0.1:8000/
+   - Allow location access (or it will wait)
+   - Pick a drop point → see fare → pay via InstaPay QR or Cash
+
+3. **Back on Sayed's tablet** — passenger appears within ~3s (auto-polling)
+   - For cash payments: tap **تحقق نقدي** to verify
+   - Tap **نزل** when passenger gets off
+
+4. **Expenses** — http://127.0.0.1:8000/driver/expense/
+5. **Dashboard** — http://127.0.0.1:8000/driver/dashboard/ (income vs cost by period)
+
+Admin review: http://127.0.0.1:8000/admin/
 
 ## Review seeded data
 
@@ -60,9 +79,14 @@ Buildathon/
 │   ├── urls.py
 │   ├── wsgi.py
 │   └── asgi.py
-├── core/               # Main app (models, admin, seed)
+├── core/               # Main app (models, views, admin, seed)
 │   ├── models.py
+│   ├── views.py
+│   ├── services.py
 │   ├── admin.py
+│   ├── urls.py
+│   ├── templates/core/
+│   ├── static/core/
 │   └── management/commands/seed_data.py
 └── db.sqlite3          # SQLite database
 ```
@@ -77,3 +101,13 @@ Buildathon/
 | `Ride`         | Active trip session (start/end button grouping)      |
 | `Passenger`    | One registration: pickup, drop, fare, payment        |
 | `Cost`         | Expense with amortization period tag                 |
+
+## UI routes (phase 2)
+
+| URL | Who | Purpose |
+|-----|-----|---------|
+| `/` | Passenger | New passenger flow (waiting → pick drop → checkout) |
+| `/driver/login/` | Sayed | Driver login |
+| `/driver/` | Sayed | Active ride, passenger list, manual add |
+| `/driver/expense/` | Sayed | Add expenses |
+| `/driver/dashboard/` | Sayed | Income vs cost report |
