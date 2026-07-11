@@ -26,6 +26,7 @@ from .models import (
 from .services import (
     dashboard_stats,
     get_active_ride,
+    income_time_insights,
     period_bounds,
     serialize_passenger,
     serialize_stop,
@@ -325,4 +326,12 @@ def driver_dashboard(request):
         'period': period,
         'periods': periods,
         'stats': stats,
+    })
+
+
+@login_required
+def driver_analysis(request):
+    insights = income_time_insights(request.user)
+    return render(request, 'core/driver_analysis.html', {
+        'insights': insights,
     })

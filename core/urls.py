@@ -21,4 +21,5 @@ urlpatterns = [
     path('driver/api/passenger/<int:passenger_id>/cancel/', views.driver_passenger_cancel, name='driver_passenger_cancel'),
     path('driver/expense/', views.driver_expense, name='driver_expense'),
     path('driver/dashboard/', views.driver_dashboard, name='driver_dashboard'),
+    path('driver/analysis/', views.driver_analysis, name='driver_analysis'),
 ]

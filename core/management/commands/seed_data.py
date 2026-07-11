@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
+import random
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
@@ -19,6 +20,48 @@ from core.models import (
     Route,
     RouteStop,
 )
+
+# Stop pairs for variable fares (pickup_order, drop_order)
+STOP_PAIRS = [
+    (1, 3),
+    (1, 4),
+    (1, 5),
+    (1, 6),
+    (2, 4),
+    (2, 5),
+    (2, 6),
+    (3, 5),
+    (3, 6),
+    (4, 6),
+]
+
+# Hour slots with base passenger counts (peaks at morning + evening)
+HOUR_WEIGHTS = {
+    6: 1,
+    7: 4,
+    8: 5,
+    9: 3,
+    11: 1,
+    13: 2,
+    16: 3,
+    17: 5,
+    18: 4,
+    19: 2,
+}
+
+# Python weekday: Mon=0 … Sun=6 — boost Tue–Thu
+DAY_MULTIPLIER = {
+    0: 1.1,  # Mon
+    1: 1.35,  # Tue
+    2: 1.4,  # Wed — strongest
+    3: 1.3,  # Thu
+    4: 0.35,  # Fri — light
+    5: 0.9,  # Sat
+    6: 0.85,  # Sun
+}
+
+HISTORY_DAYS = 28
+MIN_COMPLETED_RIDES_FOR_SKIP = 20
 
 
 class Command(BaseCommand):
@@ -66,7 +109,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write('User sayed already exists')
 
-        profile, _ = DriverProfile.objects.get_or_create(
+        DriverProfile.objects.get_or_create(
             user=sayed,
             defaults={
                 'route': route,
@@ -94,58 +137,83 @@ class Command(BaseCommand):
             },
         )
 
-        ride, ride_created = Ride.objects.get_or_create(
-            driver=sayed,
-            route=route,
-            status=RideStatus.COMPLETED,
-            started_at=timezone.now() - timedelta(hours=3),
-            defaults={'ended_at': timezone.now() - timedelta(hours=1)},
-        )
+        completed = Ride.objects.filter(driver=sayed, status=RideStatus.COMPLETED).count()
+        if completed >= MIN_COMPLETED_RIDES_FOR_SKIP:
+            self.stdout.write(
+                f'History already seeded ({completed} completed rides) — skipping ride history'
+            )
+            self.stdout.write(self.style.SUCCESS('Seed data ready. Review at /admin/'))
+            return
 
-        if ride_created:
-            sample_passengers = [
-                {
-                    'pickup_stop': stops[1],
-                    'drop_stop': stops[3],
-                    'pickup_lat': 30.0135,
-                    'pickup_lng': 31.2092,
-                    'payment_method': PaymentMethod.CASH,
-                },
-                {
-                    'pickup_stop': stops[2],
-                    'drop_stop': stops[5],
-                    'pickup_lat': 29.9795,
-                    'pickup_lng': 31.1345,
-                    'payment_method': PaymentMethod.INSTAPAY,
-                },
-                {
-                    'pickup_stop': stops[1],
-                    'drop_stop': stops[4],
-                    'pickup_lat': 30.0130,
-                    'pickup_lng': 31.2085,
-                    'payment_method': PaymentMethod.CASH,
-                },
-            ]
+        # Remove thin sample rides so we can rebuild a full history once
+        Ride.objects.filter(driver=sayed, status=RideStatus.COMPLETED).delete()
 
-            for passenger_data in sample_passengers:
-                pickup = passenger_data['pickup_stop']
-                drop = passenger_data['drop_stop']
-                fare = route.compute_fare(pickup, drop)
-                payment_method = passenger_data['payment_method']
-                Passenger.objects.create(
-                    ride=ride,
-                    pickup_stop=pickup,
-                    drop_stop=drop,
-                    pickup_lat=passenger_data['pickup_lat'],
-                    pickup_lng=passenger_data['pickup_lng'],
-                    fare=fare,
-                    payment_method=payment_method,
-                    payment_status=(
-                        PaymentStatus.PAID
-                        if payment_method == PaymentMethod.INSTAPAY
-                        else PaymentStatus.PENDING
-                    ),
-                    ride_status=PassengerRideStatus.DROPPED_OFF,
+        rng = random.Random(42)
+        tz = timezone.get_current_timezone()
+        today = timezone.localdate()
+        rides_created = 0
+        passengers_created = 0
+
+        for day_offset in range(HISTORY_DAYS, 0, -1):
+            day = today - timedelta(days=day_offset)
+            day_mult = DAY_MULTIPLIER[day.weekday()]
+
+            for hour, base_count in HOUR_WEIGHTS.items():
+                count = max(1, int(round(base_count * day_mult)))
+                if day_mult < 0.5 and hour not in (8, 17):
+                    # Friday: only keep peak slots
+                    continue
+
+                started = timezone.make_aware(
+                    datetime(day.year, day.month, day.day, hour, rng.randint(0, 20)),
+                    tz,
                 )
+                ended = started + timedelta(minutes=rng.randint(35, 55))
 
+                ride = Ride(
+                    driver=sayed,
+                    route=route,
+                    status=RideStatus.COMPLETED,
+                )
+                ride.save()
+                Ride.objects.filter(pk=ride.pk).update(
+                    started_at=started,
+                    ended_at=ended,
+                )
+                rides_created += 1
+
+                for i in range(count):
+                    pickup_order, drop_order = rng.choice(STOP_PAIRS)
+                    pickup = stops[pickup_order]
+                    drop = stops[drop_order]
+                    fare = route.compute_fare(pickup, drop)
+                    payment_method = (
+                        PaymentMethod.INSTAPAY if rng.random() < 0.35 else PaymentMethod.CASH
+                    )
+                    created_at = started + timedelta(minutes=2 + i * 3 + rng.randint(0, 2))
+
+                    passenger = Passenger(
+                        ride=ride,
+                        pickup_stop=pickup,
+                        drop_stop=drop,
+                        pickup_lat=pickup.lat + rng.uniform(-0.001, 0.001),
+                        pickup_lng=pickup.lng + rng.uniform(-0.001, 0.001),
+                        fare=fare,
+                        payment_method=payment_method,
+                        payment_status=(
+                            PaymentStatus.PAID
+                            if payment_method == PaymentMethod.INSTAPAY
+                            else PaymentStatus.PAID
+                        ),
+                        ride_status=PassengerRideStatus.DROPPED_OFF,
+                    )
+                    passenger.save()
+                    Passenger.objects.filter(pk=passenger.pk).update(created_at=created_at)
+                    passengers_created += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Seeded {rides_created} rides and {passengers_created} passengers over {HISTORY_DAYS} days'
+            )
+        )
         self.stdout.write(self.style.SUCCESS('Seed data ready. Review at /admin/'))
