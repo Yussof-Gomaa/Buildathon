@@ -28,6 +28,34 @@ python manage.py runserver
 
 Visit http://127.0.0.1:8000/ for the passenger tablet UI.
 
+### Deployment (gunicorn / production)
+
+Django does **not** serve CSS/JS when running with gunicorn unless you collect static files first. This project uses **WhiteNoise** for that.
+
+**One command:**
+
+```bash
+./start.sh
+```
+
+Or manually:
+
+```bash
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_data
+python manage.py collectstatic --noinput   # required before deploy
+gunicorn buildathon.wsgi:application --bind 0.0.0.0:8000
+```
+
+For local dev: `./start.sh dev` (uses `runserver` instead of gunicorn).
+
+Optional env vars: `PORT=8080 ./start.sh`
+
+If CSS looks unstyled after deploy, you almost certainly skipped `collectstatic`. Re-run it after any CSS/JS change, then restart gunicorn.
+
+For local dev, `runserver` serves static automatically — no extra step needed.
+
 ### Demo login (Sayed)
 
 | Field    | Value      |
