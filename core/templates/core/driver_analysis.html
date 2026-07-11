@@ -1,59 +1,76 @@
 {% extends "core/base.html" %}
 
-{% block title %}تحليل الدخل{% endblock %}
+{% block title %}تحليل{% endblock %}
+{% block body_class %}driver-ui{% endblock %}
 
 {% block content %}
-<div class="app-shell wide">
-  <div class="top-bar">
-    <h1>تحليل الدخل</h1>
-    <div class="nav-links">
-      <a href="{% url 'driver_home' %}">رحلة اليوم</a>
-      <a href="{% url 'driver_dashboard' %}">تقرير</a>
-      <a href="{% url 'driver_expense' %}">مصروف</a>
+<div class="driver-mobile">
+  <header class="driver-header">
+    <div class="driver-header-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
     </div>
-  </div>
-
-  {% if not insights.has_data %}
-  <p class="subtitle" style="text-align:center;padding:2rem">لا توجد بيانات دخل كافية للتحليل بعد</p>
-  {% else %}
-
-  <div class="recommend-grid">
-    <div class="recommend-card">
-      <div class="recommend-label">أفضل يوم</div>
-      <div class="recommend-value">{{ insights.best_day_name }}</div>
-      <div class="recommend-amount">{{ insights.best_day_income }} ج</div>
+    <div>
+      <p class="driver-header-label">تحليل الدخل</p>
+      <p class="driver-header-sub">امتى تشتغل أحسن؟</p>
     </div>
-    <div class="recommend-card">
-      <div class="recommend-label">أفضل ساعة</div>
-      <div class="recommend-value">{{ insights.best_hour_label }}</div>
-      <div class="recommend-amount">{{ insights.best_hour_income }} ج</div>
-    </div>
-  </div>
+  </header>
 
-  <section class="heatmap-section">
-    <h2>خريطة الأسبوع</h2>
-    <div class="heatmap heatmap-week">
-      {% for cell in insights.weekday_heatmap %}
-      <div class="heatmap-cell" style="--intensity: {{ cell.intensity }}" title="{{ cell.income }} ج">
-        <span class="heatmap-label">{{ cell.day }}</span>
-        <span class="heatmap-income">{{ cell.income }} ج</span>
+  <main class="driver-main">
+    {% if not insights.has_data %}
+    <section class="driver-section">
+      <p class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        لسه مفيش بيانات كفاية — بعد شوية رحلات هنقولك أفضل يوم وساعة
+      </p>
+    </section>
+    {% else %}
+
+    <div class="recommend-grid">
+      <div class="recommend-card">
+        <div class="recommend-label">أفضل يوم</div>
+        <div class="recommend-value">{{ insights.best_day_name }}</div>
+        <div class="recommend-amount">{{ insights.best_day_income }} ج</div>
       </div>
-      {% endfor %}
-    </div>
-  </section>
-
-  <section class="heatmap-section">
-    <h2>خريطة اليوم</h2>
-    <div class="heatmap heatmap-day">
-      {% for cell in insights.hour_heatmap %}
-      <div class="heatmap-cell" style="--intensity: {{ cell.intensity }}" title="{{ cell.income }} ج">
-        <span class="heatmap-label">{{ cell.label }}</span>
-        <span class="heatmap-income">{{ cell.income }} ج</span>
+      <div class="recommend-card">
+        <div class="recommend-label">أفضل ساعة</div>
+        <div class="recommend-value">{{ insights.best_hour_label }}</div>
+        <div class="recommend-amount">{{ insights.best_hour_income }} ج</div>
       </div>
-      {% endfor %}
     </div>
-  </section>
 
-  {% endif %}
+    <section class="driver-section heatmap-section">
+      <div class="section-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>خريطة الأسبوع</span>
+      </div>
+      <div class="heatmap heatmap-week">
+        {% for cell in insights.weekday_heatmap %}
+        <div class="heatmap-cell" style="--intensity: {{ cell.intensity }}" title="{{ cell.income }} ج">
+          <span class="heatmap-label">{{ cell.day }}</span>
+          <span class="heatmap-income">{{ cell.income }} ج</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="driver-section heatmap-section">
+      <div class="section-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>خريطة اليوم</span>
+      </div>
+      <div class="heatmap heatmap-day">
+        {% for cell in insights.hour_heatmap %}
+        <div class="heatmap-cell" style="--intensity: {{ cell.intensity }}" title="{{ cell.income }} ج">
+          <span class="heatmap-label">{{ cell.label }}</span>
+          <span class="heatmap-income">{{ cell.income }} ج</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% endif %}
+  </main>
+
+  {% include "core/partials/driver_bottom_nav.html" %}
 </div>
 {% endblock %}

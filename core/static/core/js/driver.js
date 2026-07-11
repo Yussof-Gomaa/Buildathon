@@ -4,13 +4,7 @@
   let manualPickup = null;
   let manualDrop = null;
   let manualPayment = 'CASH';
-  let lastState = null;
-
-  const ICONS = {
-    cash: '<svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>',
-    cancel: '<svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-    pin: '<svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
-  };
+  let endingRide = false;
 
   async function apiFetch(url, options = {}) {
     const headers = { 'Content-Type': 'application/json', 'X-CSRFToken': csrf, ...(options.headers || {}) };
@@ -18,68 +12,66 @@
     return res.json();
   }
 
-  function paymentBadge(method) {
-    return method === 'INSTAPAY'
-      ? '<span class="badge badge-instapay">إنستا</span>'
-      : '<span class="badge badge-cash">كاش</span>';
-  }
-
-  function statusBadge(status) {
-    return status === 'PAID'
-      ? '<span class="badge badge-paid">اتدفع</span>'
-      : '<span class="badge badge-pending">لسه</span>';
-  }
-
   function dropCountText(n) {
-    if (n === 0) return 'محدش هينزل';
-    if (n === 1) return 'واحد هينزل';
-    if (n === 2) return 'اتنين هينزلوا';
-    return `${n} هينزلوا`;
+    if (n === 0) return 'محدش';
+    if (n === 1) return '١';
+    if (n === 2) return '٢';
+    return String(n);
   }
 
   function renderArriveSection(data) {
     const section = document.getElementById('arrive-section');
-    const current = data.current_stop ? data.current_stop.name : 'لسه ما وصلناش';
-    const currentHtml = `<p class="arrive-current">${ICONS.pin} آخر محطة: <strong>${current}</strong></p>`;
+    const current = data.current_stop ? data.current_stop.name : '—';
 
     if (!data.next_stop) {
-      section.innerHTML = currentHtml + '<p class="big-hint">خلصنا كل المحطات</p>';
+      section.innerHTML = `
+        <div class="arrive-done">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span>خلصنا الخط</span>
+        </div>`;
       return;
     }
 
     const n = data.dropping_count || 0;
-    const names = (data.dropping_at_next || []).map((p) => p.drop).join('، ');
-    const dropHint = n > 0
-      ? `<p class="arrive-drop-hint">${dropCountText(n)} هنا: ${names}</p>`
-      : `<p class="arrive-drop-hint">${dropCountText(n)}</p>`;
-
     section.innerHTML = `
-      ${currentHtml}
-      <p class="arrive-next-label">المحطة الجاية</p>
-      <p class="arrive-next-name">${data.next_stop.name}</p>
-      ${dropHint}
-      <button class="btn btn-primary btn-big" id="btn-arrive" type="button">
-        ${ICONS.pin}
-        وصلنا ${data.next_stop.name}
+      <div class="arrive-meta">
+        <span class="arrive-from"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>${current}</span>
+        <span class="arrive-arrow">←</span>
+        <span class="arrive-to"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${data.next_stop.name}</span>
+      </div>
+      <div class="arrive-drop-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <strong>${dropCountText(n)}</strong>
+        <span>ينزلوا</span>
+      </div>
+      <button class="btn-arrive" id="btn-arrive" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>وصلنا</span>
       </button>
     `;
-
-    document.getElementById('btn-arrive').addEventListener('click', () => handleArrive(data));
+    document.getElementById('btn-arrive').addEventListener('click', () => handleArrive());
   }
 
-  async function handleArrive(data) {
+  async function handleArrive() {
     const res = await apiFetch('/driver/api/ride/arrive/', { method: 'POST', body: '{}' });
-    if (res.error) {
-      await appAlert(res.error);
-      return;
-    }
+    if (res.error) await appAlert(res.error);
+    else poll();
+  }
+
+  async function autoEndRide() {
+    if (endingRide) return;
+    endingRide = true;
+    const res = await apiFetch('/driver/api/ride/end/', { method: 'POST', body: '{}' });
+    if (res.error) endingRide = false;
     poll();
   }
 
   function renderPassengers(passengers, nextStopId) {
     const list = document.getElementById('passenger-list');
     const empty = document.getElementById('no-passengers');
+    const countEl = document.getElementById('passenger-count');
     list.innerHTML = '';
+    if (countEl) countEl.textContent = passengers.length ? passengers.length : '';
 
     if (!passengers.length) {
       empty.classList.remove('hidden');
@@ -90,48 +82,57 @@
     passengers.forEach((p) => {
       const droppingHere = nextStopId && p.drop_stop_id === nextStopId;
       const card = document.createElement('div');
-      card.className = 'passenger-card' + (droppingHere ? ' dropping-soon' : '');
+      card.className = 'pax-row' + (droppingHere ? ' dropping' : '');
       card.innerHTML = `
-        <div class="passenger-route">${p.pickup} ← ${p.drop}</div>
-        ${droppingHere ? '<div class="drop-soon-badge">هينزل في المحطة الجاية</div>' : ''}
-        <div class="passenger-meta">
-          <span class="fare-tag">${p.fare} ج</span>
-          ${paymentBadge(p.payment_method)}
-          ${statusBadge(p.payment_status)}
+        <div class="pax-route">
+          <span class="pax-from">${p.pickup}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          <span class="pax-to">${p.drop}</span>
         </div>
-        <div class="passenger-actions"></div>
+        <div class="pax-bottom">
+          <span class="pax-fare">${p.fare} ج</span>
+          <div class="pax-meta-row">
+            <div class="pax-badges">
+              ${p.payment_method === 'INSTAPAY'
+                ? '<span class="mini-badge insta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/></svg></span>'
+                : '<span class="mini-badge cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg></span>'}
+              ${p.payment_status !== 'PAID' ? '<span class="mini-badge pending">!</span>' : ''}
+            </div>
+            <div class="pax-actions"></div>
+          </div>
+        </div>
       `;
-      const actions = card.querySelector('.passenger-actions');
-
+      const actions = card.querySelector('.pax-actions');
       if (p.payment_method === 'CASH' && p.payment_status === 'PENDING') {
-        const verifyBtn = document.createElement('button');
-        verifyBtn.className = 'btn btn-primary btn-sm btn-icon';
-        verifyBtn.innerHTML = ICONS.cash + ' استلمت';
-        verifyBtn.addEventListener('click', () => action(`/driver/api/passenger/${p.id}/verify-cash/`));
-        actions.appendChild(verifyBtn);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'icon-circle-btn success';
+        btn.title = 'استلمت';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>';
+        btn.addEventListener('click', () => action(`/driver/api/passenger/${p.id}/verify-cash/`));
+        actions.appendChild(btn);
       }
-
       const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'btn btn-danger btn-sm btn-icon';
-      cancelBtn.innerHTML = ICONS.cancel + ' الغي';
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'icon-circle-btn danger';
+      cancelBtn.title = 'الغي';
+      cancelBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
       cancelBtn.addEventListener('click', () => action(`/driver/api/passenger/${p.id}/cancel/`));
       actions.appendChild(cancelBtn);
-
       list.appendChild(card);
     });
   }
 
-  function renderStopButtons(containerId, stopItems, onSelect, selectedId) {
+  function renderStopGrid(containerId, stopItems, onSelect, selectedId) {
     const list = document.getElementById(containerId);
+    if (!list) return;
     list.innerHTML = '';
     stopItems.forEach((s) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'stop-btn' + (selectedId === s.id ? ' selected' : '');
+      btn.className = 'stop-tile' + (selectedId === s.id ? ' selected' : '');
       btn.innerHTML = `
-        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-        </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         <span>${s.name}</span>
       `;
       btn.addEventListener('click', () => onSelect(s));
@@ -140,30 +141,44 @@
   }
 
   function renderManualForm() {
-    renderStopButtons('manual-pickup-list', stops, selectManualPickup, manualPickup?.id);
+    renderStopGrid('manual-pickup-list', stops, selectManualPickup, manualPickup?.id);
 
-    const pickupLabel = document.getElementById('manual-pickup-selected');
-    const dropSection = document.getElementById('manual-drop-list');
-    const dropLabel = document.getElementById('manual-drop-selected');
+    const pickupChip = document.getElementById('manual-pickup-selected');
+    const dropList = document.getElementById('manual-drop-list');
+    const dropStep = document.getElementById('drop-step-label');
+    const dropChip = document.getElementById('manual-drop-selected');
+    const payStep = document.getElementById('pay-step-label');
+    const payGrid = document.getElementById('pay-step');
+    const addBtn = document.getElementById('btn-manual-add');
 
     if (manualPickup) {
-      pickupLabel.textContent = '✓ من: ' + manualPickup.name;
-      pickupLabel.classList.remove('hidden');
-      dropSection.classList.remove('hidden');
-      const dropStops = stops.filter((s) => s.order > manualPickup.order);
-      renderStopButtons('manual-drop-list', dropStops, selectManualDrop, manualDrop?.id);
+      pickupChip.textContent = '✓ ' + manualPickup.name;
+      pickupChip.classList.remove('hidden');
+      dropStep.classList.remove('hidden');
+      dropList.classList.remove('hidden');
+      renderStopGrid('manual-drop-list', stops.filter((s) => s.order > manualPickup.order), selectManualDrop, manualDrop?.id);
     } else {
-      pickupLabel.classList.add('hidden');
-      dropSection.classList.add('hidden');
-      dropLabel.classList.add('hidden');
+      pickupChip.classList.add('hidden');
+      dropStep.classList.add('hidden');
+      dropList.classList.add('hidden');
+      dropChip.classList.add('hidden');
+      payStep.classList.add('hidden');
+      payGrid.classList.add('hidden');
+      addBtn.classList.add('hidden');
       manualDrop = null;
     }
 
     if (manualDrop) {
-      dropLabel.textContent = '✓ ينزل: ' + manualDrop.name;
-      dropLabel.classList.remove('hidden');
-    } else {
-      dropLabel.classList.add('hidden');
+      dropChip.textContent = '✓ ' + manualDrop.name;
+      dropChip.classList.remove('hidden');
+      payStep.classList.remove('hidden');
+      payGrid.classList.remove('hidden');
+      addBtn.classList.remove('hidden');
+    } else if (manualPickup) {
+      dropChip.classList.add('hidden');
+      payStep.classList.add('hidden');
+      payGrid.classList.add('hidden');
+      addBtn.classList.add('hidden');
     }
   }
 
@@ -182,15 +197,15 @@
     manualPickup = null;
     manualDrop = null;
     manualPayment = 'CASH';
-    document.querySelectorAll('.pay-btn').forEach((btn) => {
+    document.querySelectorAll('.pay-tile').forEach((btn) => {
       btn.classList.toggle('selected', btn.dataset.pay === 'CASH');
     });
     renderManualForm();
   }
 
   function renderState(data) {
-    lastState = data;
-    document.getElementById('route-label').textContent = data.route_name || '';
+    const routeLabel = document.getElementById('route-label');
+    if (routeLabel) routeLabel.textContent = data.route_name || '';
 
     const newStops = data.stops || [];
     const stopsChanged = JSON.stringify(newStops.map((s) => s.id)) !== JSON.stringify(stops.map((s) => s.id));
@@ -199,7 +214,6 @@
     if (!data.active_ride) {
       document.getElementById('no-ride').classList.remove('hidden');
       document.getElementById('active-ride').classList.add('hidden');
-      if (stopsChanged) renderManualForm();
       return;
     }
 
@@ -207,22 +221,23 @@
     document.getElementById('active-ride').classList.remove('hidden');
 
     const pct = Math.min(100, (data.active_count / data.max_capacity) * 100);
-    document.getElementById('capacity-text').textContent =
-      `${data.active_count} من ${data.max_capacity}`;
+    document.getElementById('capacity-text').textContent = `${data.active_count}/${data.max_capacity}`;
     document.getElementById('capacity-fill').style.width = `${pct}%`;
 
     renderArriveSection(data);
     renderPassengers(data.passengers || [], data.next_stop?.id);
     if (stopsChanged || !manualPickup) renderManualForm();
+
+    if (!data.next_stop && data.route_finished) {
+      autoEndRide();
+    }
   }
 
   async function poll() {
     try {
       const data = await fetch('/driver/api/state/').then((r) => r.json());
       renderState(data);
-    } catch {
-      // retry
-    }
+    } catch { /* retry */ }
   }
 
   async function action(url) {
@@ -230,10 +245,10 @@
     poll();
   }
 
-  document.querySelectorAll('.pay-btn').forEach((btn) => {
+  document.querySelectorAll('.pay-tile').forEach((btn) => {
     btn.addEventListener('click', () => {
       manualPayment = btn.dataset.pay;
-      document.querySelectorAll('.pay-btn').forEach((b) => b.classList.remove('selected'));
+      document.querySelectorAll('.pay-tile').forEach((b) => b.classList.remove('selected'));
       btn.classList.add('selected');
     });
   });
@@ -241,11 +256,12 @@
   document.getElementById('btn-start-ride').addEventListener('click', async () => {
     const res = await apiFetch('/driver/api/ride/start/', { method: 'POST', body: '{}' });
     if (res.error) await appAlert(res.error);
+    else endingRide = false;
     poll();
   });
 
   document.getElementById('btn-end-ride').addEventListener('click', async () => {
-    const yes = await appConfirm('خلصنا الشغل النهاردة؟');
+    const yes = await appConfirm('خلصنا الشغل؟');
     if (!yes) return;
     const res = await apiFetch('/driver/api/ride/end/', { method: 'POST', body: '{}' });
     if (res.error) await appAlert(res.error);
@@ -254,7 +270,7 @@
 
   document.getElementById('btn-manual-add').addEventListener('click', async () => {
     if (!manualPickup || !manualDrop) {
-      await appAlert('اختار منين وفين ينزل — اضغط على المحطة');
+      await appAlert('اختار المحطتين');
       return;
     }
     const res = await apiFetch('/driver/api/passenger/add/', {
@@ -265,12 +281,8 @@
         payment_method: manualPayment,
       }),
     });
-    if (res.error) {
-      await appAlert(res.error);
-      return;
-    }
-    resetManualForm();
-    poll();
+    if (res.error) await appAlert(res.error);
+    else { resetManualForm(); poll(); }
   });
 
   poll();

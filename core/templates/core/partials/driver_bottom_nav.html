@@ -1,0 +1,22 @@
+<nav class="driver-bottom-nav" aria-label="القائمة">
+  <a href="{% url 'driver_home' %}" class="bottom-nav-item{% if request.resolver_match.url_name == 'driver_home' %} active{% endif %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    <span>العربية</span>
+  </a>
+  <a href="{% url 'driver_dashboard' %}" class="bottom-nav-item{% if request.resolver_match.url_name == 'driver_dashboard' %} active{% endif %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    <span>فلوسك</span>
+  </a>
+  <a href="{% url 'driver_analysis' %}" class="bottom-nav-item{% if request.resolver_match.url_name == 'driver_analysis' %} active{% endif %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    <span>تحليل</span>
+  </a>
+  <a href="{% url 'driver_expense' %}" class="bottom-nav-item{% if request.resolver_match.url_name == 'driver_expense' %} active{% endif %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+    <span>صرف</span>
+  </a>
+  <a href="{% url 'driver_logout' %}" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    <span>خروج</span>
+  </a>
+</nav>

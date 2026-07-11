@@ -1,38 +1,40 @@
 {% extends "core/base.html" %}
 
-{% block title %}دخول سيد{% endblock %}
+{% block title %}دخول{% endblock %}
 {% block body_class %}driver-ui{% endblock %}
 
 {% block content %}
-<div class="app-shell">
-  <div class="card login-card card-center">
-    <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v5h-3"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-    </svg>
-    <h1 style="margin-bottom:0.25rem">يا سيد</h1>
-    <p class="subtitle" style="margin-bottom:1.5rem">ادخل وابدأ شغلك</p>
+<div class="driver-mobile driver-login">
+  <main class="driver-main login-main">
+    <div class="login-hero">
+      <div class="hero-icon-wrap large">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      </div>
+      <h1>يا سيد</h1>
+    </div>
 
     {% if form.errors %}
-    <ul class="messages">
-      <li class="error">الباسورد غلط — جرّب تاني</li>
-    </ul>
+    <div class="alert-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>الباسورد غلط</span>
+    </div>
     {% endif %}
 
-    <form method="post">
+    <form method="post" class="expense-form card">
       {% csrf_token %}
-      <div class="form-group">
-        <label for="id_username">اسمك</label>
-        <input type="text" name="username" id="id_username" required autofocus placeholder="sayed">
-      </div>
-      <div class="form-group">
-        <label for="id_password">الباسورد</label>
-        <input type="password" name="password" id="id_password" required>
-      </div>
-      <button type="submit" class="btn btn-primary btn-big">
-        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      <label class="input-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <input type="text" name="username" id="id_username" required autofocus placeholder="اسمك">
+      </label>
+      <label class="input-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <input type="password" name="password" id="id_password" required placeholder="الباسورد">
+      </label>
+      <button type="submit" class="btn-hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
         ادخل
       </button>
     </form>
-  </div>
+  </main>
 </div>
 {% endblock %}

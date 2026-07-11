@@ -4,63 +4,69 @@
 {% block body_class %}driver-ui{% endblock %}
 
 {% block content %}
-<div class="app-shell wide">
-  <div class="top-bar">
-    <h1>صرف فلوس</h1>
-    <div class="nav-links nav-icons">
-      <a href="{% url 'driver_home' %}" class="nav-pill">
-        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-        <span>العربية</span>
-      </a>
-      <a href="{% url 'driver_dashboard' %}" class="nav-pill">
-        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span>فلوسك</span>
-      </a>
+<div class="driver-mobile">
+  <header class="driver-header">
+    <div class="driver-header-icon expense">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
     </div>
-  </div>
+    <div>
+      <p class="driver-header-label">صرف</p>
+      <p class="driver-header-sub">سجّل اللي طلع</p>
+    </div>
+  </header>
 
-  <div class="card">
-    <form method="post">
+  <main class="driver-main">
+    <form method="post" class="expense-form card">
       {% csrf_token %}
-      <div class="form-group">
-        <label for="amount">كام بقى؟ (جنيه)</label>
-        <input type="number" name="amount" id="amount" step="0.01" min="0" required inputmode="decimal">
-      </div>
-      <div class="form-group">
-        <label for="period">بتتصرف كل قد إيه؟</label>
+      <label class="input-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <input type="number" name="amount" id="amount" step="0.01" min="0" required inputmode="decimal" placeholder="كام؟">
+      </label>
+      <label class="input-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <select name="period" id="period">
           {% for value, label in period_choices %}
           <option value="{{ value }}">{{ label }}</option>
           {% endfor %}
         </select>
-      </div>
-      <div class="form-group">
-        <label for="note">على إيه؟</label>
-        <input type="text" name="note" id="note" placeholder="ديزل، صيانة، مالك...">
-      </div>
-      <button type="submit" class="btn btn-primary btn-big">
-        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      </label>
+      <label class="input-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <select name="note" id="note" required>
+          <option value="" disabled selected>على إيه؟</option>
+          {% for value, label in note_choices %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="btn-hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
         احفظ
       </button>
     </form>
-  </div>
 
-  {% if recent_costs %}
-  <h2 class="section-title">آخر اللي اتصرف</h2>
-  <div class="cost-list">
-    {% for cost in recent_costs %}
-    <div class="cost-item">
-      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent)">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
-      </svg>
-      <div>
-        <div>{{ cost.note|default:"صرف" }}</div>
-        <div class="subtitle">{{ cost.get_period_display }} — {{ cost.date_incurred }}</div>
+    {% if recent_costs %}
+    <section class="driver-section">
+      <div class="section-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+        <span>آخر الصرف</span>
       </div>
-      <span class="amount">{{ cost.amount }} ج</span>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+      <div class="cost-list">
+        {% for cost in recent_costs %}
+        <div class="cost-row">
+          <div class="cost-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></div>
+          <div class="cost-row-body">
+            <strong>{{ cost.note|default:"صرف" }}</strong>
+            <small>{{ cost.get_period_display }}</small>
+          </div>
+          <span class="cost-row-amt">{{ cost.amount }} ج</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </main>
+
+  {% include "core/partials/driver_bottom_nav.html" %}
 </div>
 {% endblock %}

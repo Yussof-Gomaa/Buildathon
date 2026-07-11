@@ -32,6 +32,16 @@ from .services import (
     serialize_stop,
 )
 
+EXPENSE_NOTE_CHOICES = [
+    ('ديزل', '⛽ ديزل'),
+    ('صيانة', '🔧 صيانة'),
+    ('دفعة للمالك', '👤 دفعة للمالك'),
+    ('غسيل', '💦 غسيل'),
+    ('تريكو', '🛣 تريكو'),
+    ('أكل وشرب', '🍵 أكل وشرب'),
+    ('حاجة تانية', '📦 حاجة تانية'),
+]
+
 
 def passenger_home(request):
     return render(request, 'core/passenger_home.html')
@@ -337,6 +347,8 @@ def driver_expense(request):
             amount = request.POST['amount']
             period = request.POST.get('period', CostPeriod.ONE_OFF)
             note = request.POST.get('note', '')
+            if note not in dict(EXPENSE_NOTE_CHOICES):
+                raise ValueError
             Cost.objects.create(
                 driver=request.user,
                 amount=amount,
@@ -358,6 +370,7 @@ def driver_expense(request):
     return render(request, 'core/driver_expense.html', {
         'recent_costs': recent_costs,
         'period_choices': period_choices,
+        'note_choices': EXPENSE_NOTE_CHOICES,
     })
 
 
