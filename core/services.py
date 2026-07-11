@@ -180,6 +180,7 @@ def serialize_passenger(passenger) -> dict:
         'id': passenger.id,
         'pickup': passenger.pickup_stop.name,
         'drop': passenger.drop_stop.name,
+        'drop_stop_id': passenger.drop_stop_id,
         'fare': str(passenger.fare),
         'payment_method': passenger.payment_method,
         'payment_status': passenger.payment_status,
@@ -193,4 +194,6 @@ def serialize_stop(stop) -> dict:
         'name': stop.name,
         'order': stop.order,
         'cost': str(stop.cost),
+        'lat': stop.lat,
+        'lng': stop.lng,
     }

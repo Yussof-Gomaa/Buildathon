@@ -200,11 +200,7 @@ class Command(BaseCommand):
                         pickup_lng=pickup.lng + rng.uniform(-0.001, 0.001),
                         fare=fare,
                         payment_method=payment_method,
-                        payment_status=(
-                            PaymentStatus.PAID
-                            if payment_method == PaymentMethod.INSTAPAY
-                            else PaymentStatus.PAID
-                        ),
+                        payment_status=PaymentStatus.PAID,
                         ride_status=PassengerRideStatus.DROPPED_OFF,
                     )
                     passenger.save()

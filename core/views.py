@@ -43,17 +43,23 @@ def api_active_ride(request):
     if not ride:
         return JsonResponse({'active': False})
 
-    try:
-        lat = float(request.GET.get('lat', ''))
-        lng = float(request.GET.get('lng', ''))
-    except (TypeError, ValueError):
-        return JsonResponse({'active': True, 'ride_id': ride.id, 'needs_location': True})
-
-    pickup_stop = ride.route.nearest_stop(lat, lng)
-    if not pickup_stop:
-        return JsonResponse({'error': 'لا توجد محطات على المسار.'}, status=400)
-
     profile = DriverProfile.objects.filter(user=ride.driver).first()
+    all_stops = [serialize_stop(s) for s in ride.route.stops.all()]
+
+    pickup_stop_id = request.GET.get('pickup_stop_id')
+    if not pickup_stop_id:
+        return JsonResponse({
+            'active': True,
+            'ride_id': ride.id,
+            'route_name': ride.route.name,
+            'instapay_handle': profile.instapay_handle if profile else '',
+            'all_stops': all_stops,
+            'needs_pickup': True,
+            'capacity': profile.max_capacity if profile else 14,
+            'active_count': ride.active_passenger_count,
+        })
+
+    pickup_stop = get_object_or_404(RouteStop, pk=pickup_stop_id, route=ride.route)
     drop_stops = ride.route.stops.filter(order__gt=pickup_stop.order)
 
     return JsonResponse({
@@ -63,6 +69,7 @@ def api_active_ride(request):
         'instapay_handle': profile.instapay_handle if profile else '',
         'pickup_stop': serialize_stop(pickup_stop),
         'drop_stops': [serialize_stop(s) for s in drop_stops],
+        'all_stops': all_stops,
         'capacity': profile.max_capacity if profile else 14,
         'active_count': ride.active_passenger_count,
     })
@@ -74,14 +81,11 @@ def api_fare_preview(request):
         data = json.loads(request.body)
         ride = get_object_or_404(Ride, pk=data['ride_id'], status=RideStatus.ACTIVE)
         drop_stop = get_object_or_404(RouteStop, pk=data['drop_stop_id'], route=ride.route)
-        lat = float(data['lat'])
-        lng = float(data['lng'])
+        pickup_stop = get_object_or_404(
+            RouteStop, pk=data['pickup_stop_id'], route=ride.route
+        )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return JsonResponse({'error': 'بيانات غير صالحة.'}, status=400)
-
-    pickup_stop = ride.route.nearest_stop(lat, lng)
-    if not pickup_stop:
-        return JsonResponse({'error': 'تعذر تحديد نقطة الالتقاط.'}, status=400)
 
     try:
         fare = ride.route.compute_fare(pickup_stop, drop_stop)
@@ -102,8 +106,9 @@ def api_checkout(request):
         data = json.loads(request.body)
         ride = get_object_or_404(Ride, pk=data['ride_id'], status=RideStatus.ACTIVE)
         drop_stop = get_object_or_404(RouteStop, pk=data['drop_stop_id'], route=ride.route)
-        lat = float(data['lat'])
-        lng = float(data['lng'])
+        pickup_stop = get_object_or_404(
+            RouteStop, pk=data['pickup_stop_id'], route=ride.route
+        )
         payment_method = data['payment_method']
         if payment_method not in PaymentMethod.values:
             raise ValueError
@@ -115,10 +120,6 @@ def api_checkout(request):
     if ride.active_passenger_count >= max_capacity:
         return JsonResponse({'error': 'السيارة ممتلئة.'}, status=400)
 
-    pickup_stop = ride.route.nearest_stop(lat, lng)
-    if not pickup_stop:
-        return JsonResponse({'error': 'تعذر تحديد نقطة الالتقاط.'}, status=400)
-
     try:
         fare = ride.route.compute_fare(pickup_stop, drop_stop)
     except ValidationError as exc:
@@ -128,8 +129,8 @@ def api_checkout(request):
         ride=ride,
         pickup_stop=pickup_stop,
         drop_stop=drop_stop,
-        pickup_lat=lat,
-        pickup_lng=lng,
+        pickup_lat=pickup_stop.lat,
+        pickup_lng=pickup_stop.lng,
         fare=fare,
         payment_method=payment_method,
     )
@@ -182,8 +183,10 @@ def driver_api_state(request):
     passengers = ride.passengers.filter(ride_status=PassengerRideStatus.IN_CAR).select_related(
         'pickup_stop', 'drop_stop'
     )
+    next_stop = ride.get_next_stop()
+    dropping = list(ride.passengers_dropping_at(next_stop)) if next_stop else []
 
-    return JsonResponse({
+    payload = {
         'active_ride': True,
         'ride_id': ride.id,
         'route_name': profile.route.name,
@@ -191,7 +194,18 @@ def driver_api_state(request):
         'active_count': ride.active_passenger_count,
         'passengers': [serialize_passenger(p) for p in passengers],
         'stops': stops,
-    })
+        'current_stop': serialize_stop(ride.current_stop) if ride.current_stop else None,
+    }
+    if next_stop:
+        payload['next_stop'] = serialize_stop(next_stop)
+        payload['dropping_count'] = len(dropping)
+        payload['dropping_at_next'] = [serialize_passenger(p) for p in dropping]
+    else:
+        payload['next_stop'] = None
+        payload['dropping_count'] = 0
+        payload['route_finished'] = ride.current_stop_id is not None
+
+    return JsonResponse(payload)
 
 
 @login_required
@@ -203,6 +217,36 @@ def driver_ride_start(request):
 
     ride = Ride.objects.create(driver=request.user, route=profile.route)
     return JsonResponse({'ok': True, 'ride_id': ride.id})
+
+
+@login_required
+@require_POST
+def driver_ride_arrive(request):
+    ride = Ride.objects.filter(
+        driver=request.user,
+        status=RideStatus.ACTIVE,
+    ).select_related('route', 'current_stop').first()
+    if not ride:
+        return JsonResponse({'error': 'مفيش رحلة شغالة.'}, status=400)
+
+    next_stop = ride.get_next_stop()
+    if not next_stop:
+        return JsonResponse({'error': 'خلصنا كل المحطات.'}, status=400)
+
+    dropping = ride.passengers_dropping_at(next_stop)
+    dropped_count = dropping.count()
+    dropping.update(ride_status=PassengerRideStatus.DROPPED_OFF)
+
+    ride.current_stop = next_stop
+    ride.save(update_fields=['current_stop'])
+
+    following = ride.get_next_stop()
+    return JsonResponse({
+        'ok': True,
+        'arrived_at': next_stop.name,
+        'dropped_count': dropped_count,
+        'next_stop': serialize_stop(following) if following else None,
+    })
 
 
 @login_required
@@ -304,9 +348,16 @@ def driver_expense(request):
             pass
 
     recent_costs = Cost.objects.filter(driver=request.user)[:10]
+    period_choices = [
+        (CostPeriod.ONE_OFF, 'مرة واحدة'),
+        (CostPeriod.DAY, 'كل يوم'),
+        (CostPeriod.WEEK, 'كل أسبوع'),
+        (CostPeriod.MONTH, 'كل شهر'),
+        (CostPeriod.YEAR, 'كل سنة'),
+    ]
     return render(request, 'core/driver_expense.html', {
         'recent_costs': recent_costs,
-        'period_choices': CostPeriod.choices,
+        'period_choices': period_choices,
     })
 
 
@@ -316,8 +367,8 @@ def driver_dashboard(request):
     start, end = period_bounds(period)
     stats = dashboard_stats(request.user, start, end)
     periods = [
-        ('today', 'اليوم'),
-        ('yesterday', 'أمس'),
+        ('today', 'النهاردة'),
+        ('yesterday', 'امبارح'),
         ('week', 'الأسبوع'),
         ('month', 'الشهر'),
         ('year', 'السنة'),

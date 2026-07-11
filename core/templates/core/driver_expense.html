@@ -1,14 +1,21 @@
 {% extends "core/base.html" %}
 
-{% block title %}إضافة مصروف{% endblock %}
+{% block title %}صرف{% endblock %}
+{% block body_class %}driver-ui{% endblock %}
 
 {% block content %}
 <div class="app-shell wide">
   <div class="top-bar">
-    <h1>مصروف جديد</h1>
-    <div class="nav-links">
-      <a href="{% url 'driver_home' %}">الرحلة</a>
-      <a href="{% url 'driver_dashboard' %}">تقرير</a>
+    <h1>صرف فلوس</h1>
+    <div class="nav-links nav-icons">
+      <a href="{% url 'driver_home' %}" class="nav-pill">
+        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>العربية</span>
+      </a>
+      <a href="{% url 'driver_dashboard' %}" class="nav-pill">
+        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>فلوسك</span>
+      </a>
     </div>
   </div>
 
@@ -16,11 +23,11 @@
     <form method="post">
       {% csrf_token %}
       <div class="form-group">
-        <label for="amount">المبلغ (جنيه)</label>
-        <input type="number" name="amount" id="amount" step="0.01" min="0" required>
+        <label for="amount">كام بقى؟ (جنيه)</label>
+        <input type="number" name="amount" id="amount" step="0.01" min="0" required inputmode="decimal">
       </div>
       <div class="form-group">
-        <label for="period">الفترة</label>
+        <label for="period">بتتصرف كل قد إيه؟</label>
         <select name="period" id="period">
           {% for value, label in period_choices %}
           <option value="{{ value }}">{{ label }}</option>
@@ -28,23 +35,26 @@
         </select>
       </div>
       <div class="form-group">
-        <label for="note">ملاحظة</label>
-        <input type="text" name="note" id="note" placeholder="مثال: ديزل، صيانة...">
+        <label for="note">على إيه؟</label>
+        <input type="text" name="note" id="note" placeholder="ديزل، صيانة، مالك...">
       </div>
-      <button type="submit" class="btn btn-primary">حفظ</button>
+      <button type="submit" class="btn btn-primary btn-big">
+        <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        احفظ
+      </button>
     </form>
   </div>
 
   {% if recent_costs %}
-  <h2 style="margin:1.5rem 0 0.75rem">آخر المصروفات</h2>
+  <h2 class="section-title">آخر اللي اتصرف</h2>
   <div class="cost-list">
     {% for cost in recent_costs %}
     <div class="cost-item">
       <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent)">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
       </svg>
       <div>
-        <div>{{ cost.note|default:"مصروف" }}</div>
+        <div>{{ cost.note|default:"صرف" }}</div>
         <div class="subtitle">{{ cost.get_period_display }} — {{ cost.date_incurred }}</div>
       </div>
       <span class="amount">{{ cost.amount }} ج</span>

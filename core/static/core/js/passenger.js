@@ -2,41 +2,27 @@
   const csrf = document.getElementById('csrf-token').value;
   const screens = {
     waiting: document.getElementById('screen-waiting'),
+    pickup: document.getElementById('screen-pickup'),
     pick: document.getElementById('screen-pick'),
     checkout: document.getElementById('screen-checkout'),
     done: document.getElementById('screen-done'),
   };
 
+  let currentScreen = 'waiting';
   let state = {
-    lat: null,
-    lng: null,
+    pickupStopId: null,
     rideId: null,
     instapayHandle: '',
     pickupStop: null,
     dropStopId: null,
-    dropStopName: '',
     fare: null,
+    allStops: [],
   };
 
-  let pollTimer = null;
-
   function showScreen(name) {
+    currentScreen = name;
     Object.values(screens).forEach((s) => s.classList.remove('active'));
     screens[name].classList.add('active');
-  }
-
-  function getLocation() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('no geo'));
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => reject(new Error('denied')),
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    });
   }
 
   async function apiFetch(url, options = {}) {
@@ -45,49 +31,19 @@
     return res.json();
   }
 
-  async function pollActiveRide() {
-    try {
-      let url = '/api/ride/active/';
-      if (state.lat != null) {
-        url += `?lat=${state.lat}&lng=${state.lng}`;
-      }
-      const data = await fetch(url).then((r) => r.json());
-
-      if (!data.active) {
-        showScreen('waiting');
-        return;
-      }
-
-      if (data.needs_location) {
-        try {
-          const loc = await getLocation();
-          state.lat = loc.lat;
-          state.lng = loc.lng;
-          return pollActiveRide();
-        } catch {
-          showScreen('waiting');
-          return;
-        }
-      }
-
-      state.rideId = data.ride_id;
-      state.instapayHandle = data.instapay_handle;
-      state.pickupStop = data.pickup_stop;
-      renderPickScreen(data);
-      showScreen('pick');
-    } catch {
-      showScreen('waiting');
+  function buildActiveUrl() {
+    const params = new URLSearchParams();
+    if (state.pickupStopId) {
+      params.set('pickup_stop_id', state.pickupStopId);
     }
+    const qs = params.toString();
+    return qs ? `/api/ride/active/?${qs}` : '/api/ride/active/';
   }
 
-  function renderPickScreen(data) {
-    document.getElementById('pickup-info').innerHTML =
-      `<div>من: <strong>${data.pickup_stop.name}</strong></div>` +
-      `<div>المسار: ${data.route_name}</div>`;
-
-    const list = document.getElementById('drop-list');
+  function renderStopList(containerId, stops, onSelect) {
+    const list = document.getElementById(containerId);
     list.innerHTML = '';
-    data.drop_stops.forEach((stop) => {
+    stops.forEach((stop) => {
       const btn = document.createElement('button');
       btn.className = 'stop-btn';
       btn.innerHTML = `
@@ -95,29 +51,102 @@
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
         </svg>
         <span>${stop.name}</span>
-        <span style="margin-right:auto;color:var(--muted)">${stop.cost} ج</span>
+        ${stop.cost && stop.cost !== '0.00' ? `<span style="margin-right:auto;color:var(--muted)">${stop.cost} ج</span>` : ''}
       `;
-      btn.addEventListener('click', () => selectDrop(stop));
+      btn.addEventListener('click', () => onSelect(stop));
       list.appendChild(btn);
     });
   }
 
+  function renderPickScreen(data) {
+    document.getElementById('pickup-info').innerHTML =
+      `<div>من: <strong>${data.pickup_stop.name}</strong></div>` +
+      `<div>الخط: ${data.route_name}</div>`;
+    renderStopList('drop-list', data.drop_stops, selectDrop);
+  }
+
+  function renderPickupScreen(stops) {
+    renderStopList('pickup-list', stops, selectPickup);
+  }
+
+  async function selectPickup(stop) {
+    state.pickupStopId = stop.id;
+    state.pickupStop = stop;
+    await loadRideWithPickup();
+  }
+
+  async function loadRideWithPickup() {
+    const data = await fetch(buildActiveUrl()).then((r) => r.json());
+    if (!data.active || !data.pickup_stop) return;
+    state.rideId = data.ride_id;
+    state.instapayHandle = data.instapay_handle;
+    if (!data.drop_stops.length) {
+      appAlert('مفيش محطة نزول بعد كده.');
+      return;
+    }
+    renderPickScreen(data);
+    showScreen('pick');
+  }
+
+  async function pollActiveRide() {
+    if (currentScreen === 'checkout' || currentScreen === 'done') return;
+
+    try {
+      const data = await fetch(buildActiveUrl()).then((r) => r.json());
+
+      if (!data.active) {
+        if (currentScreen !== 'pick' && currentScreen !== 'pickup') {
+          document.getElementById('waiting-title').textContent = 'استنى شوية';
+          document.getElementById('waiting-subtitle').textContent = 'السائق هيبدأ دلوقتي';
+          showScreen('waiting');
+        }
+        return;
+      }
+
+      state.rideId = data.ride_id;
+      state.instapayHandle = data.instapay_handle;
+      state.allStops = data.all_stops || [];
+
+      if (!state.pickupStopId) {
+        if (currentScreen === 'waiting' || currentScreen === 'pickup') {
+          renderPickupScreen(data.all_stops);
+          showScreen('pickup');
+        }
+        return;
+      }
+
+      if (data.pickup_stop && data.drop_stops) {
+        if (!data.drop_stops.length) {
+          if (currentScreen === 'pick') {
+            appAlert('أنت في آخر محطة — مفيش نزول.');
+          }
+          return;
+        }
+        state.pickupStop = data.pickup_stop;
+        if (currentScreen === 'waiting' || currentScreen === 'pickup') {
+          renderPickScreen(data);
+          showScreen('pick');
+        }
+      }
+    } catch {
+      if (currentScreen === 'waiting') showScreen('waiting');
+    }
+  }
+
   async function selectDrop(stop) {
     state.dropStopId = stop.id;
-    state.dropStopName = stop.name;
 
     const preview = await apiFetch('/api/fare/preview/', {
       method: 'POST',
       body: JSON.stringify({
         ride_id: state.rideId,
         drop_stop_id: stop.id,
-        lat: state.lat,
-        lng: state.lng,
+        pickup_stop_id: state.pickupStopId,
       }),
     });
 
     if (preview.error) {
-      alert(preview.error);
+      appAlert(preview.error);
       return;
     }
 
@@ -130,7 +159,6 @@
     const qrText = encodeURIComponent(`ادفع ${preview.fare} جنيه إلى ${state.instapayHandle}`);
     document.getElementById('qr-image').src = `/qr/?text=${qrText}`;
     document.getElementById('qr-section').classList.remove('hidden');
-
     showScreen('checkout');
   }
 
@@ -140,14 +168,13 @@
       body: JSON.stringify({
         ride_id: state.rideId,
         drop_stop_id: state.dropStopId,
-        lat: state.lat,
-        lng: state.lng,
+        pickup_stop_id: state.pickupStopId,
         payment_method: paymentMethod,
       }),
     });
 
     if (result.error) {
-      alert(result.error);
+      appAlert(result.error);
       return;
     }
 
@@ -156,8 +183,9 @@
   }
 
   function resetAndPoll() {
+    state.pickupStopId = null;
+    state.pickupStop = null;
     state.dropStopId = null;
-    state.dropStopName = '';
     state.fare = null;
     document.getElementById('qr-section').classList.add('hidden');
     showScreen('waiting');
@@ -167,17 +195,6 @@
   document.getElementById('btn-instapay').addEventListener('click', () => checkout('INSTAPAY'));
   document.getElementById('btn-cash').addEventListener('click', () => checkout('CASH'));
 
-  async function init() {
-    try {
-      const loc = await getLocation();
-      state.lat = loc.lat;
-      state.lng = loc.lng;
-    } catch {
-      // Will retry when ride becomes active
-    }
-    pollActiveRide();
-    pollTimer = setInterval(pollActiveRide, 3000);
-  }
-
-  init();
+  pollActiveRide();
+  setInterval(pollActiveRide, 3000);
 })();

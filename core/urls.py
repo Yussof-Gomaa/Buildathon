@@ -14,6 +14,7 @@ urlpatterns = [
     path('driver/', views.driver_home, name='driver_home'),
     path('driver/api/state/', views.driver_api_state, name='driver_api_state'),
     path('driver/api/ride/start/', views.driver_ride_start, name='driver_ride_start'),
+    path('driver/api/ride/arrive/', views.driver_ride_arrive, name='driver_ride_arrive'),
     path('driver/api/ride/end/', views.driver_ride_end, name='driver_ride_end'),
     path('driver/api/passenger/add/', views.driver_passenger_add, name='driver_passenger_add'),
     path('driver/api/passenger/<int:passenger_id>/verify-cash/', views.driver_verify_cash, name='driver_verify_cash'),
