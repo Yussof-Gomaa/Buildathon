@@ -97,7 +97,7 @@
       if (!data.active) {
         if (currentScreen !== 'pick' && currentScreen !== 'pickup') {
           document.getElementById('waiting-title').textContent = 'استنى شوية';
-          document.getElementById('waiting-subtitle').textContent = 'السائق هيبدأ دلوقتي';
+          document.getElementById('waiting-subtitle').textContent = 'سيد بيحمل';
           showScreen('waiting');
         }
         return;
