@@ -7,62 +7,70 @@
 <div class="app-shell" id="passenger-app">
   <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
 
-  <!-- Waiting for active ride -->
   <div class="screen active" id="screen-waiting">
     <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
     </svg>
-    <h1>في انتظار السائق</h1>
-    <p class="subtitle">سيبدأ السائق الرحلة قريباً</p>
-    <div class="spinner"></div>
+    <h1 id="waiting-title">استنى شوية</h1>
+    <p class="subtitle" id="waiting-subtitle">السائق هيبدأ دلوقتي</p>
+    <div class="spinner" id="waiting-spinner"></div>
   </div>
 
-  <!-- Pick drop point -->
+  <div class="screen" id="screen-pickup">
+    <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+    </svg>
+    <h1>ركبت منين؟</h1>
+    <p class="subtitle">اختار المحطة اللي ركبت منها</p>
+    <div class="stop-list" id="pickup-list"></div>
+  </div>
+
   <div class="screen" id="screen-pick">
     <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
     </svg>
-    <h1>اختر نقطة النزول</h1>
+    <h1>هتنزل فين؟</h1>
     <div class="trip-info" id="pickup-info"></div>
     <div class="stop-list" id="drop-list"></div>
   </div>
 
-  <!-- Checkout -->
   <div class="screen" id="screen-checkout">
-    <h1>الدفع</h1>
+    <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>
+    </svg>
+    <h1>كام؟</h1>
     <div class="trip-info" id="checkout-info"></div>
     <div class="fare-display" id="fare-amount">— <span>جنيه</span></div>
 
     <div class="checkout-actions">
       <div class="card qr-wrap hidden" id="qr-section">
-        <img id="qr-image" src="" alt="QR إنستاباي">
-        <p class="subtitle" style="margin-top:0.5rem">امسح للدفع عبر إنستاباي</p>
+        <img id="qr-image" src="" alt="QR إنستا">
+        <p class="subtitle" style="margin-top:0.5rem">امسح وادفع بالإنستا</p>
       </div>
-      <button class="btn btn-primary" id="btn-instapay">
+      <button class="btn btn-primary btn-big" id="btn-instapay">
         <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
           <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
           <rect x="18" y="14" width="3" height="3"/><rect x="14" y="18" width="3" height="3"/>
           <rect x="18" y="18" width="3" height="3"/>
         </svg>
-        دفع إنستاباي
+        إنستا
       </button>
-      <button class="btn btn-accent" id="btn-cash">
+      <button class="btn btn-accent btn-big" id="btn-cash">
         <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>
         </svg>
-        دفع نقدي
+        كاش
       </button>
     </div>
   </div>
 
-  <!-- Success (brief, then back to waiting) -->
   <div class="screen" id="screen-done">
     <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--success)">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
     </svg>
-    <h1>تم التسجيل</h1>
-    <p class="subtitle">بالتوفيق في رحلتك</p>
+    <h1>تمام</h1>
+    <p class="subtitle">بالسلامة</p>
   </div>
 </div>
 {% endblock %}

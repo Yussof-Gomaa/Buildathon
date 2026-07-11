@@ -138,6 +138,13 @@ class Ride(models.Model):
         choices=RideStatus.choices,
         default=RideStatus.ACTIVE,
     )
+    current_stop = models.ForeignKey(
+        RouteStop,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='rides_here',
+    )
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
 
@@ -150,6 +157,18 @@ class Ride(models.Model):
     @property
     def active_passenger_count(self):
         return self.passengers.filter(ride_status=PassengerRideStatus.IN_CAR).count()
+
+    def get_next_stop(self):
+        stops = self.route.stops.order_by('order')
+        if self.current_stop_id is None:
+            return stops.first()
+        return stops.filter(order__gt=self.current_stop.order).first()
+
+    def passengers_dropping_at(self, stop):
+        return self.passengers.filter(
+            drop_stop=stop,
+            ride_status=PassengerRideStatus.IN_CAR,
+        )
 
 
 class Passenger(models.Model):

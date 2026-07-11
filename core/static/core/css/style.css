@@ -396,3 +396,246 @@ h2 { font-size: 1.25rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .hidden { display: none !important; }
+
+/* Driver UI — bigger touch targets, icon-first for Sayed */
+body.driver-ui {
+  font-size: 1.05rem;
+}
+
+body.driver-ui h1 { font-size: 1.6rem; }
+
+body.driver-ui .btn-big {
+  padding: 1.15rem 1.5rem;
+  font-size: 1.25rem;
+  min-height: 56px;
+}
+
+body.driver-ui .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+body.driver-ui .icon-xl {
+  width: 96px;
+  height: 96px;
+  color: var(--primary);
+}
+
+body.driver-ui .card-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+body.driver-ui .big-hint {
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+body.driver-ui .section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0.75rem;
+  font-size: 1.2rem;
+}
+
+body.driver-ui .field-label {
+  display: block;
+  font-weight: 700;
+  margin: 0.5rem 0 0.25rem;
+  text-align: right;
+}
+
+body.driver-ui .ride-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body.driver-ui .capacity-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+body.driver-ui .nav-icons {
+  flex-wrap: wrap;
+}
+
+body.driver-ui .nav-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+}
+
+body.driver-ui .nav-pill:hover {
+  background: #e8f5f5;
+}
+
+body.driver-ui .stat-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+body.driver-ui .stat-card .value {
+  font-size: 2.25rem;
+}
+
+body.driver-ui .fare-tag {
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+body.driver-ui .empty-hint {
+  padding: 2rem;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+body.driver-ui .period-tabs a {
+  font-size: 1rem;
+  padding: 0.65rem 1rem;
+}
+
+body.driver-ui .manual-stop-list {
+  max-height: 200px;
+  margin-bottom: 0.75rem;
+}
+
+body.driver-ui .selected-stop {
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+  text-align: right;
+}
+
+body.driver-ui .pay-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+body.driver-ui .pay-btn.selected {
+  border-color: var(--primary);
+  background: #e8f5f5;
+}
+
+/* App modal */
+.app-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.app-modal.hidden { display: none; }
+
+.app-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.app-modal-box {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  z-index: 1;
+}
+
+.app-modal-title {
+  font-size: 1.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.app-modal-message {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.app-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.app-modal-actions .btn { width: 100%; }
+
+body.driver-ui .arrive-card {
+  text-align: center;
+  margin: 1rem 0;
+  border: 2px solid var(--primary);
+  background: #f0fafafa;
+}
+
+body.driver-ui .arrive-current {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+body.driver-ui .arrive-next-label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+body.driver-ui .arrive-next-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 0.25rem 0 0.5rem;
+}
+
+body.driver-ui .arrive-drop-hint {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--accent);
+}
+
+body.driver-ui .passenger-card.dropping-soon {
+  border: 2px solid var(--accent);
+  background: #fffbeb;
+}
+
+body.driver-ui .drop-soon-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 0.35rem;
+}
+

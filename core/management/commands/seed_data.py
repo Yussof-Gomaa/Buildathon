@@ -1,28 +1,21 @@
-from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from core.models import (
     Cost,
-    CostPeriod,
     DriverProfile,
     Passenger,
-    PassengerRideStatus,
-    PaymentMethod,
-    PaymentStatus,
     PriceType,
     Ride,
-    RideStatus,
     Route,
     RouteStop,
 )
 
 
 class Command(BaseCommand):
-    help = 'Seed demo data for Sayed microbus app (idempotent).'
+    help = 'Seed route, stops, and Sayed user (no sample rides/costs).'
 
     def handle(self, *args, **options):
         route, _ = Route.objects.get_or_create(
@@ -42,14 +35,12 @@ class Command(BaseCommand):
             {'name': 'أبو النمرس', 'order': 6, 'cost': Decimal('6.00'), 'lat': 29.8900, 'lng': 31.2500},
         ]
 
-        stops = {}
         for stop_data in stops_data:
-            stop, _ = RouteStop.objects.get_or_create(
+            RouteStop.objects.get_or_create(
                 route=route,
                 order=stop_data['order'],
                 defaults=stop_data,
             )
-            stops[stop_data['order']] = stop
 
         sayed, created = User.objects.get_or_create(
             username='sayed',
@@ -66,7 +57,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write('User sayed already exists')
 
-        profile, _ = DriverProfile.objects.get_or_create(
+        DriverProfile.objects.get_or_create(
             user=sayed,
             defaults={
                 'route': route,
@@ -75,77 +66,12 @@ class Command(BaseCommand):
             },
         )
 
-        Cost.objects.get_or_create(
-            driver=sayed,
-            note='ديزل',
-            date_incurred=timezone.localdate(),
-            defaults={
-                'amount': Decimal('350.00'),
-                'period': CostPeriod.DAY,
-            },
-        )
-        Cost.objects.get_or_create(
-            driver=sayed,
-            note='دفعة للمالك',
-            date_incurred=timezone.localdate().replace(day=1),
-            defaults={
-                'amount': Decimal('3000.00'),
-                'period': CostPeriod.MONTH,
-            },
-        )
+        # Clear transactional data so dashboard shows only real usage
+        deleted_passengers, _ = Passenger.objects.filter(ride__driver=sayed).delete()
+        deleted_rides, _ = Ride.objects.filter(driver=sayed).delete()
+        deleted_costs, _ = Cost.objects.filter(driver=sayed).delete()
 
-        ride, ride_created = Ride.objects.get_or_create(
-            driver=sayed,
-            route=route,
-            status=RideStatus.COMPLETED,
-            started_at=timezone.now() - timedelta(hours=3),
-            defaults={'ended_at': timezone.now() - timedelta(hours=1)},
-        )
-
-        if ride_created:
-            sample_passengers = [
-                {
-                    'pickup_stop': stops[1],
-                    'drop_stop': stops[3],
-                    'pickup_lat': 30.0135,
-                    'pickup_lng': 31.2092,
-                    'payment_method': PaymentMethod.CASH,
-                },
-                {
-                    'pickup_stop': stops[2],
-                    'drop_stop': stops[5],
-                    'pickup_lat': 29.9795,
-                    'pickup_lng': 31.1345,
-                    'payment_method': PaymentMethod.INSTAPAY,
-                },
-                {
-                    'pickup_stop': stops[1],
-                    'drop_stop': stops[4],
-                    'pickup_lat': 30.0130,
-                    'pickup_lng': 31.2085,
-                    'payment_method': PaymentMethod.CASH,
-                },
-            ]
-
-            for passenger_data in sample_passengers:
-                pickup = passenger_data['pickup_stop']
-                drop = passenger_data['drop_stop']
-                fare = route.compute_fare(pickup, drop)
-                payment_method = passenger_data['payment_method']
-                Passenger.objects.create(
-                    ride=ride,
-                    pickup_stop=pickup,
-                    drop_stop=drop,
-                    pickup_lat=passenger_data['pickup_lat'],
-                    pickup_lng=passenger_data['pickup_lng'],
-                    fare=fare,
-                    payment_method=payment_method,
-                    payment_status=(
-                        PaymentStatus.PAID
-                        if payment_method == PaymentMethod.INSTAPAY
-                        else PaymentStatus.PENDING
-                    ),
-                    ride_status=PassengerRideStatus.DROPPED_OFF,
-                )
-
-        self.stdout.write(self.style.SUCCESS('Seed data ready. Review at /admin/'))
+        self.stdout.write(self.style.SUCCESS(
+            f'Seed ready — route + user only. '
+            f'Cleared {deleted_rides} rides, {deleted_passengers} passengers, {deleted_costs} costs.'
+        ))
