@@ -751,7 +751,7 @@ body.driver-ui {
 }
 
 .arrive-drop-badge svg { width: 20px; height: 20px; }
-.arrive-drop-badge strong { font-size: 1.25rem; color: var(--primary); }
+.arrive-drop-badge span { font-weight: 700; }
 
 .btn-arrive {
   background: var(--primary);
@@ -826,7 +826,7 @@ details[open] .section-head::after { transform: rotate(90deg); }
 
 .manual-add-panel .section-count { display: none; }
 .manual-add-panel[open] summary { margin-bottom: 0.625rem; }
-.manual-add-body { display: flex; flex-direction: column; gap: 0.5rem; }
+.manual-add-panel[open] .manual-add-body { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .step-chip {
   display: flex;

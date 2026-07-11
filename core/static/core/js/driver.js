@@ -12,11 +12,10 @@
     return res.json();
   }
 
-  function dropCountText(n) {
-    if (n === 0) return 'محدش';
-    if (n === 1) return '١';
-    if (n === 2) return '٢';
-    return String(n);
+  function dropBadgeText(n) {
+    if (n === 0) return 'محدش نازل';
+    if (n === 1) return 'واحد هينزل';
+    return 'اتنين او اكتر نازلين';
   }
 
   function renderArriveSection(data) {
@@ -41,8 +40,7 @@
       </div>
       <div class="arrive-drop-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        <strong>${dropCountText(n)}</strong>
-        <span>ينزلوا</span>
+        <span>${dropBadgeText(n)}</span>
       </div>
       <button class="btn-arrive" id="btn-arrive" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -94,8 +92,8 @@
           <div class="pax-meta-row">
             <div class="pax-badges">
               ${p.payment_method === 'INSTAPAY'
-                ? '<span class="mini-badge insta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/></svg></span>'
-                : '<span class="mini-badge cash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg></span>'}
+                ? '<span class="mini-badge insta" title="إنستاباي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>'
+                : '<span class="mini-badge cash" title="كاش"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg></span>'}
               ${p.payment_status !== 'PAID' ? '<span class="mini-badge pending">!</span>' : ''}
             </div>
             <div class="pax-actions"></div>
