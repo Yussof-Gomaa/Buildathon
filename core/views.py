@@ -46,29 +46,19 @@ def api_active_ride(request):
     all_stops = [serialize_stop(s) for s in ride.route.stops.all()]
 
     pickup_stop_id = request.GET.get('pickup_stop_id')
-    if pickup_stop_id:
-        pickup_stop = get_object_or_404(RouteStop, pk=pickup_stop_id, route=ride.route)
-    else:
-        pickup_stop = None
-        try:
-            lat = float(request.GET.get('lat', ''))
-            lng = float(request.GET.get('lng', ''))
-            pickup_stop = ride.route.nearest_stop(lat, lng)
-        except (TypeError, ValueError):
-            return JsonResponse({
-                'active': True,
-                'ride_id': ride.id,
-                'route_name': ride.route.name,
-                'instapay_handle': profile.instapay_handle if profile else '',
-                'all_stops': all_stops,
-                'needs_pickup': True,
-                'capacity': profile.max_capacity if profile else 14,
-                'active_count': ride.active_passenger_count,
-            })
+    if not pickup_stop_id:
+        return JsonResponse({
+            'active': True,
+            'ride_id': ride.id,
+            'route_name': ride.route.name,
+            'instapay_handle': profile.instapay_handle if profile else '',
+            'all_stops': all_stops,
+            'needs_pickup': True,
+            'capacity': profile.max_capacity if profile else 14,
+            'active_count': ride.active_passenger_count,
+        })
 
-    if not pickup_stop:
-        return JsonResponse({'error': 'لا توجد محطات على المسار.'}, status=400)
-
+    pickup_stop = get_object_or_404(RouteStop, pk=pickup_stop_id, route=ride.route)
     drop_stops = ride.route.stops.filter(order__gt=pickup_stop.order)
 
     return JsonResponse({
@@ -90,19 +80,11 @@ def api_fare_preview(request):
         data = json.loads(request.body)
         ride = get_object_or_404(Ride, pk=data['ride_id'], status=RideStatus.ACTIVE)
         drop_stop = get_object_or_404(RouteStop, pk=data['drop_stop_id'], route=ride.route)
-        if data.get('pickup_stop_id'):
-            pickup_stop = get_object_or_404(
-                RouteStop, pk=data['pickup_stop_id'], route=ride.route
-            )
-        else:
-            lat = float(data['lat'])
-            lng = float(data['lng'])
-            pickup_stop = ride.route.nearest_stop(lat, lng)
+        pickup_stop = get_object_or_404(
+            RouteStop, pk=data['pickup_stop_id'], route=ride.route
+        )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return JsonResponse({'error': 'بيانات غير صالحة.'}, status=400)
-
-    if not pickup_stop:
-        return JsonResponse({'error': 'تعذر تحديد نقطة الالتقاط.'}, status=400)
 
     try:
         fare = ride.route.compute_fare(pickup_stop, drop_stop)
@@ -123,20 +105,12 @@ def api_checkout(request):
         data = json.loads(request.body)
         ride = get_object_or_404(Ride, pk=data['ride_id'], status=RideStatus.ACTIVE)
         drop_stop = get_object_or_404(RouteStop, pk=data['drop_stop_id'], route=ride.route)
+        pickup_stop = get_object_or_404(
+            RouteStop, pk=data['pickup_stop_id'], route=ride.route
+        )
         payment_method = data['payment_method']
         if payment_method not in PaymentMethod.values:
             raise ValueError
-
-        if data.get('pickup_stop_id'):
-            pickup_stop = get_object_or_404(
-                RouteStop, pk=data['pickup_stop_id'], route=ride.route
-            )
-            lat = float(data.get('lat', pickup_stop.lat))
-            lng = float(data.get('lng', pickup_stop.lng))
-        else:
-            lat = float(data['lat'])
-            lng = float(data['lng'])
-            pickup_stop = ride.route.nearest_stop(lat, lng)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return JsonResponse({'error': 'بيانات غير صالحة.'}, status=400)
 
@@ -144,9 +118,6 @@ def api_checkout(request):
     max_capacity = profile.max_capacity if profile else 14
     if ride.active_passenger_count >= max_capacity:
         return JsonResponse({'error': 'السيارة ممتلئة.'}, status=400)
-
-    if not pickup_stop:
-        return JsonResponse({'error': 'تعذر تحديد نقطة الالتقاط.'}, status=400)
 
     try:
         fare = ride.route.compute_fare(pickup_stop, drop_stop)
@@ -157,8 +128,8 @@ def api_checkout(request):
         ride=ride,
         pickup_stop=pickup_stop,
         drop_stop=drop_stop,
-        pickup_lat=lat,
-        pickup_lng=lng,
+        pickup_lat=pickup_stop.lat,
+        pickup_lng=pickup_stop.lng,
         fare=fare,
         payment_method=payment_method,
     )

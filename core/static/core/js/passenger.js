@@ -10,14 +10,11 @@
 
   let currentScreen = 'waiting';
   let state = {
-    lat: null,
-    lng: null,
     pickupStopId: null,
     rideId: null,
     instapayHandle: '',
     pickupStop: null,
     dropStopId: null,
-    dropStopName: '',
     fare: null,
     allStops: [],
   };
@@ -28,20 +25,6 @@
     screens[name].classList.add('active');
   }
 
-  function getLocation() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('no geo'));
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => reject(new Error('denied')),
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-      );
-    });
-  }
-
   async function apiFetch(url, options = {}) {
     const headers = { 'Content-Type': 'application/json', 'X-CSRFToken': csrf, ...(options.headers || {}) };
     const res = await fetch(url, { ...options, headers });
@@ -49,16 +32,12 @@
   }
 
   function buildActiveUrl() {
-    let url = '/api/ride/active/?';
     const params = new URLSearchParams();
-    if (state.lat != null && state.lng != null) {
-      params.set('lat', state.lat);
-      params.set('lng', state.lng);
-    }
     if (state.pickupStopId) {
       params.set('pickup_stop_id', state.pickupStopId);
     }
-    return `/api/ride/active/?${params.toString()}`;
+    const qs = params.toString();
+    return qs ? `/api/ride/active/?${qs}` : '/api/ride/active/';
   }
 
   function renderStopList(containerId, stops, onSelect) {
@@ -93,8 +72,6 @@
   async function selectPickup(stop) {
     state.pickupStopId = stop.id;
     state.pickupStop = stop;
-    state.lat = parseFloat(stop.lat);
-    state.lng = parseFloat(stop.lng);
     await loadRideWithPickup();
   }
 
@@ -130,25 +107,8 @@
       state.instapayHandle = data.instapay_handle;
       state.allStops = data.all_stops || [];
 
-      // Ride active — try GPS once if we don't have coords yet
-      if (state.lat == null && !state.pickupStopId) {
-        try {
-          const loc = await getLocation();
-          state.lat = loc.lat;
-          state.lng = loc.lng;
-          return pollActiveRide();
-        } catch {
-          // GPS blocked (common on HTTP) — manual pickup
-          if (currentScreen === 'waiting') {
-            renderPickupScreen(data.all_stops);
-            showScreen('pickup');
-          }
-          return;
-        }
-      }
-
-      if (data.needs_pickup && !state.pickupStopId) {
-        if (currentScreen === 'waiting') {
+      if (!state.pickupStopId) {
+        if (currentScreen === 'waiting' || currentScreen === 'pickup') {
           renderPickupScreen(data.all_stops);
           showScreen('pickup');
         }
@@ -157,13 +117,12 @@
 
       if (data.pickup_stop && data.drop_stops) {
         if (!data.drop_stops.length) {
-          if (currentScreen === 'waiting' || currentScreen === 'pickup') {
+          if (currentScreen === 'pick') {
             appAlert('أنت في آخر محطة — مفيش نزول.');
           }
           return;
         }
         state.pickupStop = data.pickup_stop;
-        state.pickupStopId = data.pickup_stop.id;
         if (currentScreen === 'waiting' || currentScreen === 'pickup') {
           renderPickScreen(data);
           showScreen('pick');
@@ -176,19 +135,14 @@
 
   async function selectDrop(stop) {
     state.dropStopId = stop.id;
-    state.dropStopName = stop.name;
-
-    const body = {
-      ride_id: state.rideId,
-      drop_stop_id: stop.id,
-      lat: state.lat,
-      lng: state.lng,
-    };
-    if (state.pickupStopId) body.pickup_stop_id = state.pickupStopId;
 
     const preview = await apiFetch('/api/fare/preview/', {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ride_id: state.rideId,
+        drop_stop_id: stop.id,
+        pickup_stop_id: state.pickupStopId,
+      }),
     });
 
     if (preview.error) {
@@ -209,18 +163,14 @@
   }
 
   async function checkout(paymentMethod) {
-    const body = {
-      ride_id: state.rideId,
-      drop_stop_id: state.dropStopId,
-      lat: state.lat,
-      lng: state.lng,
-      payment_method: paymentMethod,
-    };
-    if (state.pickupStopId) body.pickup_stop_id = state.pickupStopId;
-
     const result = await apiFetch('/api/passenger/checkout/', {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ride_id: state.rideId,
+        drop_stop_id: state.dropStopId,
+        pickup_stop_id: state.pickupStopId,
+        payment_method: paymentMethod,
+      }),
     });
 
     if (result.error) {
@@ -236,10 +186,7 @@
     state.pickupStopId = null;
     state.pickupStop = null;
     state.dropStopId = null;
-    state.dropStopName = '';
     state.fare = null;
-    state.lat = null;
-    state.lng = null;
     document.getElementById('qr-section').classList.add('hidden');
     showScreen('waiting');
     pollActiveRide();
