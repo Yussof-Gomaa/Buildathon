@@ -96,10 +96,10 @@ After `seed_data`, check in Django admin:
 
 - **Routes** — "الطريق الرئيسي – الجيزة" (variable pricing) with 6 stops
 - **Driver profiles** — Sayed linked to the route, capacity 14, InstaPay handle
+- **Rides** — ~28 days of completed ride history (for income analysis heatmaps)
+- **Costs** — diesel (DAY period) and owner payment (MONTH period)
 
-No sample rides, passengers, or costs — dashboard shows only what you create during testing.
-
-Re-run `python manage.py seed_data` to reset rides/passengers/costs while keeping route + user.
+Re-run `python manage.py seed_data` anytime — it is idempotent and skips rebuilding history if enough completed rides already exist.
 
 ## Project Structure
 
