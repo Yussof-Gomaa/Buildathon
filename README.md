@@ -30,27 +30,33 @@ Visit http://127.0.0.1:8000/ for the passenger tablet UI.
 
 ### Deployment (gunicorn / production)
 
-Django does **not** serve CSS/JS when running with gunicorn unless you collect static files first. This project uses **WhiteNoise** for that.
+Most platforms (Railway, Render, Fly.io) split **build** and **start**. Do **not** use `./start.sh` as the start command unless bash + the script are available.
 
-**One command:**
+**Build command** (runs once on deploy):
 
 ```bash
-./start.sh
+bash build.sh
 ```
 
-Or manually:
+**Start command** (keep your existing one — works on all platforms):
 
 ```bash
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py seed_data
-python manage.py collectstatic --noinput   # required before deploy
+gunicorn buildathon.wsgi:application --bind 0.0.0.0:$PORT
+```
+
+On platforms without `$PORT`, use `8000`:
+
+```bash
 gunicorn buildathon.wsgi:application --bind 0.0.0.0:8000
 ```
 
-For local dev: `./start.sh dev` (uses `runserver` instead of gunicorn).
+**Local one-liner** (creates venv, setup, run):
 
-Optional env vars: `PORT=8080 ./start.sh`
+```bash
+bash start.sh dev
+```
+
+**Why `./start.sh` failed in production:** the old script always ran `source .venv/bin/activate`, but PaaS hosts install Python packages globally — there is no `.venv` folder, so bash reported "no such file or directory".
 
 If CSS looks unstyled after deploy, you almost certainly skipped `collectstatic`. Re-run it after any CSS/JS change, then restart gunicorn.
 
